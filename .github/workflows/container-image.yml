@@ -1,11 +1,8 @@
-on:
-  push:
-    branches:
-    - main
-    tags:
-    - 'v*'
+name: Container image
 
-name: build container image
+on:
+  workflow_call:
+
 
 jobs:
   build:
@@ -35,10 +32,10 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
-          platforms: linux/amd64, linux/arm64
+          platforms: linux/amd64 #, linux/arm64
           push: true
           tags: |
-            ghcr.io/kubewarden/kubewarden-controller:latest
+            ghcr.io/${{github.repository_owner}}/kubewarden-controller:latest
       -
         name: Retrieve tag name
         if: ${{ startsWith(github.ref, 'refs/tags/') }}
@@ -51,7 +48,7 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
-          platforms: linux/amd64, linux/arm64
+          platforms: linux/amd64 #, linux/arm64
           push: true
           tags: |
-            ghcr.io/kubewarden/kubewarden-controller:${{ env.TAG_NAME }}
+            ghcr.io/${{github.repository_owner}}/kubewarden-controller:${{ env.TAG_NAME }}

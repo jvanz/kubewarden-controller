@@ -1,0 +1,16 @@
+name: "Install ClusterAdimissionPolicy"
+description: "Install the ClusterAdimissionPolicy and wait for it be active"
+author: "Kubewarden"
+inputs:
+  policy_file:
+    description: "The YAML file defining the ClusterAdimissionPolicy"
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: "Install ClusterAdimissionPolicy"
+      run: kubectl apply -f ${{ inputs.policy_file }}
+      shell: bash
+    - name: "Wait policy to be active"
+      run: kubectl  wait --for=condition=PolicyActive clusteradmissionpolicies --all
+      shell: bash

@@ -1,0 +1,66 @@
+name: End-to-end tests
+
+on:
+  workflow_call:
+  push:
+    branches:
+    - '*'
+    tags:
+    - 'v*'
+  pull_request:
+    branches:
+    - '*'
+
+jobs:
+  tests-kubewarden-installation:
+    name: "Kubewarden basic end-to-end tests"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: "Create Kubernetes cluster with Kubewarden installed"
+        uses: ./.github/actions/create-kubewarden-cluster
+      - name: "Install privileged pod ClusterAdmissionPolicy"
+        uses: ./.github/actions/install-clusteradmissionpolicy
+        with: 
+          policy_file: "e2e-test/privileged-pod-policy.yaml"
+      - name: "Launch a pod which violate privileged pod policy"
+        run: kubectl apply -f e2e-test/violate-privileged-pod-policy.yaml || exit 0
+      - name: "Launch a pod which does not violate privileged pod policy"
+        run: kubectl apply -f e2e-test/not-violate-privileged-pod-policy.yaml
+      - name: "Update privileged pod policy to check only UPDATE operations"
+        run: kubectl patch clusteradmissionpolicy privileged-pods --type=json --patch-file e2e-test/privileged-pod-policy-patch.json
+      - name: "Launch a pod which violate privileged pod policy after policy change should work"
+        run: kubectl apply -f e2e-test/violate-privileged-pod-policy.yaml
+      - name: "Delete ClusterAdmissionPolicy"
+        run: kubectl delete --wait -f e2e-test/privileged-pod-policy.yaml
+      - name: "Launch a pod which violate privileged pod policy after policy deletion should work"
+        run: kubectl apply -f e2e-test/violate-privileged-pod-policy.yaml
+      - name: "Install psp-user-group ClusterAdmissionPolicy"
+        uses: ./.github/actions/install-clusteradmissionpolicy
+        with: 
+          policy_file: "e2e-test/psp-user-group-policy.yaml"
+      - name: "Launch a pod that should be mutate by psp-user-group-policy"
+        run: |
+          kubectl apply -f e2e-test/mutate-pod-psp-user-group-policy.yaml
+          kubectl wait --for=condition=Ready pod pause-user-group
+          eval `kubectl get pod pause-user-group -o json | jq ".spec.containers[].securityContext.runAsUser==1000"`
+      - name: "Launch second policy server"
+        run: kubectl apply -f e2e-test/policy-server.yaml
+      - name: "Update PolicyServer"
+        run: |
+          kubectl patch policyserver default --type=merge -p '{"spec": {"replicas": 2}}'
+      - name: "All PolicyServer pods should be ready"
+        run: |
+          sleep 40s #find a better way to detect when a policy serve is ready
+          kubectl wait --timeout 2m --for=condition=Ready -n kubewarden pod --all
+      - name: "Delete policy server"
+        run: kubectl delete --wait -f e2e-test/policy-server.yaml
+      - name: "All PolicyServer pods should be ready"
+        run: |
+          sleep 40s
+          kubectl wait --timeout 2m --for=condition=Ready -n kubewarden pod --all
+      - name: "Uninstall Kuberwarden"
+        run: |
+          # TODO - share release with the create-kubewarden-cluster action
+          helm uninstall -n kubewarden kubewarden-controller
+          helm uninstall -n kubewarden kubewarden-crds

@@ -3,18 +3,33 @@ on:
     tags:
     - 'v*'
 
-name: publish release
+name: Release
 
 jobs:
-  build:
-    name: Create new Github release
+  linter:
+    name: "Run Golang linter"
+    uses: jvanz/kubewarden-controller/.github/workflows/golangci-lint.yml@main
+  unit-tests:
+    name: "Run unit tests"
+    uses: jvanz/kubewarden-controller/.github/workflows/unit-test.yml@main
+  build-container-image:
+    name: "Build container image"
+    uses: jvanz/kubewarden-controller/.github/workflows/container-image.yml@main
+  e2e-tests:
+    name: "Run end-to-end tests"
+    needs: build-container-image
+    uses: jvanz/kubewarden-controller/.github/workflows/e2e-tests.yml@main
+    with:
+      controller-image-repository: "ghcr.io/${{github.repository_owner}}/kubewarden-controller"
+      controller-image-tag: "${{github.ref_name}}"
+  create-release:
+    name: "Create new Github release"
     runs-on: ubuntu-20.04
+    needs: [e2e-tests, unit-tests, linter]
     steps:
-      -
-        name: Checkout code
+      - name: Checkout code
         uses: actions/checkout@v2
-      -
-        name: Create Release
+      - name: Create Release
         id: create_release
         uses: actions/create-release@v1
         env:

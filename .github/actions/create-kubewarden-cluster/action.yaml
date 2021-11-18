@@ -1,0 +1,46 @@
+name: "Setup Kubewarden cluster"
+description: "Create a K3d cluster with Kubewarden installed with Telemetry infrastructure installed"
+author: "Kubewarden"
+inputs:
+  controller-image-repository:
+    description: "Define the controller container image repository"
+    type: string
+    required: false
+    default: ""
+  controller-image-tag:
+    description: "Define the controller container image tag"
+    required: false
+    default: ""
+runs:
+  using: "composite"
+  steps:
+      - uses: AbsaOSS/k3d-action@v1.5.0
+        name: "Create Kubernetes cluster"
+        with:
+          cluster-name: "e2e-test-cluster"
+      - name: "Install cert-manager"
+        run: kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.5.3/cert-manager.yaml
+        shell: bash
+      - name: "Wait cluster to be ready"
+        run: kubectl wait --for=condition=Ready nodes --all
+        shell: bash
+      - uses: azure/setup-helm@v1
+        name: "Install Helm"
+        with:
+          version: 'latest' # default is latest stable
+        id: install
+      - name: "Install cert-manager"
+        run: kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.5.3/cert-manager.yaml
+        shell: bash
+      - name: "Wait for cert-manager be ready"
+        run: kubectl wait --for=condition=Available deployment --timeout=3m -n cert-manager --all
+        shell: bash
+      - name: "Install Kubewarden Helm repository"
+        run: helm repo add --force-update kubewarden https://charts.kubewarden.io
+        shell: bash
+      - name: "Install Kubewarden CRDS"
+        run: helm upgrade --install --wait --namespace kubewarden --create-namespace kubewarden-crds kubewarden/kubewarden-crds
+        shell: bash
+      - name: "Install Kubewarden controller"
+        run: "helm upgrade --install --wait --set image.repository=\"${{inputs.controller-image-repository}}\" --set image.tag=\"${{inputs.controller-image-tag}}\" --namespace kubewarden kubewarden-controller kubewarden/kubewarden-controller"
+        shell: bash
