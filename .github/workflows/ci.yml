@@ -4,18 +4,19 @@ on:
   push:
     branches:
     - '*'
-    tags:
-    - 'v*'
   pull_request:
     branches:
     - '*'
 
 jobs:
-  verify:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-go@v2
-        with:
-          go-version: '1.16'
-      - run: make test
+  linter:
+    name: "Run Golang linter"
+    uses: jvanz/kubewarden-controller/.github/workflows/golangci-lint.yml@main
+  unit-tests:
+    name: "Run unit tests"
+    uses: jvanz/kubewarden-controller/.github/workflows/unit-test.yml@main
+  build-container-image:
+    name: "Build container image"
+    uses: jvanz/kubewarden-controller/.github/workflows/container-image.yml@main
+    needs: unit-tests
+    if: ${{github.event_name == 'push' && github.ref_name == 'main'}}

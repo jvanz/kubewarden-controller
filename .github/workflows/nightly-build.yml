@@ -1,0 +1,13 @@
+name: Run end-to-end tests daily
+
+on:
+  schedule: 
+    - cron: "0 0 * * *"
+
+jobs:
+  e2e-tests:
+    name: "Run end-to-end tests"
+    uses: jvanz/kubewarden-controller/.github/workflows/e2e-tests.yml@main
+    with:
+      controller-image-repository: "ghcr.io/${{github.repository_owner}}/kubewarden-controller"
+      controller-image-tag: "latest"
