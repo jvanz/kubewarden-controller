@@ -1,6 +1,8 @@
 Kubewarden is a Kubernetes Dynamic Admission Controller that uses policies written
 in WebAssembly.
 
+blablabla
+
 For more information refer to the [official Kubewarden website](https://kubewarden.io/).
 
 # kubewarden-controller
