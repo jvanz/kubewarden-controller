@@ -20,6 +20,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"reflect"
+	"sort"
 
 	v1alpha2 "github.com/kubewarden/kubewarden-controller/apis/v1alpha2"
 	"github.com/kubewarden/kubewarden-controller/internal/pkg/admission"
@@ -85,17 +87,72 @@ func isLatestReplicaSetFromPolicyServerDeployment(replicaSet *appsv1.ReplicaSet,
 		replicaSet.Annotations[constants.PolicyServerDeploymentConfigVersionAnnotation] == policyServerDeployment.Annotations[constants.PolicyServerDeploymentConfigVersionAnnotation]
 }
 
+func getPodsIP(latestPods []corev1.Pod) []string {
+	var ips []string
+	for _, pod := range latestPods {
+		ips = append(ips, pod.Status.PodIP)
+	}
+	return ips
+}
+
+func getEndpointIPs(ctx context.Context, apiReader client.Reader, policyServerDeployment *appsv1.Deployment) []string {
+	endpoints := corev1.Endpoints{}
+	if err := apiReader.Get(ctx, client.ObjectKey{Namespace: policyServerDeployment.Namespace, Name: policyServerDeployment.Name}, &endpoints); err != nil {
+		return nil
+	}
+	var ips []string
+	for _, subset := range endpoints.Subsets {
+		for _, ip := range subset.Addresses {
+			ips = append(ips, ip.IP)
+		}
+	}
+	return ips
+}
+
+func areSlicesEqual(s1, s2 []string) bool {
+	sort.Strings(s1)
+	sort.Strings(s2)
+	fmt.Printf("%v == %v ? %t\n", s1, s2, reflect.DeepEqual(s1, s2))
+	return reflect.DeepEqual(s1, s2)
+}
+
+func endpointsHasOnlyIPFromLatestRollout(ctx context.Context, apiReader client.Reader, policyServerDeployment *appsv1.Deployment, latestPods []corev1.Pod) bool {
+	latestPodsIPs := getPodsIP(latestPods)
+	allEndpointIPs := getEndpointIPs(ctx, apiReader, policyServerDeployment)
+	return areSlicesEqual(allEndpointIPs, latestPodsIPs)
+}
+
+func isDeploymentRolloutCompleted(policyServerDeployment *appsv1.Deployment) bool {
+	for index := range policyServerDeployment.Status.Conditions {
+		condition := policyServerDeployment.Status.Conditions[index]
+		if condition.Type == appsv1.DeploymentProgressing &&
+			condition.Status == corev1.ConditionTrue &&
+			condition.Reason == "NewReplicaSetAvailable" {
+			return true
+		}
+	}
+	return false
+
+}
+
 func isPolicyUniquelyReachable(ctx context.Context, apiReader client.Reader, policyServerDeployment *appsv1.Deployment) bool {
+	if !isDeploymentRolloutCompleted(policyServerDeployment) {
+		fmt.Printf("Deployment rollout still running\n")
+		return false
+	}
 	replicaSets := appsv1.ReplicaSetList{}
 	if err := apiReader.List(ctx, &replicaSets, client.MatchingLabels{constants.PolicyServerLabelKey: policyServerDeployment.Labels[constants.PolicyServerLabelKey]}); err != nil {
 		return false
 	}
 	podTemplateHash := ""
 	for index := range replicaSets.Items {
+		fmt.Printf("Replicaset with replicas running: %s -> %d\n", replicaSets.Items[index].Name, replicaSets.Items[index].Status.Replicas)
 		if isLatestReplicaSetFromPolicyServerDeployment(&replicaSets.Items[index], policyServerDeployment) {
 			podTemplateHash = replicaSets.Items[index].Labels[appsv1.DefaultDeploymentUniqueLabelKey]
-			break
+		} else if replicaSets.Items[index].Status.Replicas > 0 {
+			return false
 		}
+
 	}
 	if podTemplateHash == "" {
 		return false
@@ -107,15 +164,20 @@ func isPolicyUniquelyReachable(ctx context.Context, apiReader client.Reader, pol
 	if len(pods.Items) == 0 {
 		return false
 	}
+	var latestPods []corev1.Pod
 	for _, pod := range pods.Items {
+		fmt.Printf("%s is %s\n", pod.Name, pod.Status.Phase)
 		if pod.DeletionTimestamp != nil {
 			continue
+		}
+		if pod.Labels[appsv1.DefaultDeploymentUniqueLabelKey] == podTemplateHash {
+			latestPods = append(latestPods, pod)
 		}
 		if pod.Labels[appsv1.DefaultDeploymentUniqueLabelKey] != podTemplateHash || !isPodReady(pod) {
 			return false
 		}
 	}
-	return true
+	return endpointsHasOnlyIPFromLatestRollout(ctx, apiReader, policyServerDeployment, latestPods)
 }
 
 func isPodReady(pod corev1.Pod) bool {
