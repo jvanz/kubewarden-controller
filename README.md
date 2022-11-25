@@ -103,3 +103,6 @@ See our [governance document](https://github.com/kubewarden/rfc/blob/main/rfc/00
 # Community
 
 - Slack: [#kubewarden](https://kubernetes.slack.com/archives/kubewarden) and [#kubewarden-dev](https://kubernetes.slack.com/archives/kubewarden-dev) 
+
+
+Testinf draft releaser
