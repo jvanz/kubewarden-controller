@@ -62,17 +62,36 @@ jobs:
         env:
           COSIGN_EXPERIMENTAL: 1
 
-      - name: Create release
-        id: create_release
-        uses: softprops/action-gh-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish release
+        uses: actions/github-script@v6
         with:
-          tag_name: ${{ env.TAG_NAME }}
-          name: ${{ env.TAG_NAME }}
-          draft: false
-          prerelease: ${{ contains(github.ref, '-alpha') || contains(github.ref, '-beta') || contains(github.ref, '-rc') }}
-          files: |
-            kubewarden-controller-sbom.spdx
-            kubewarden-controller-sbom.spdx.cert
-            kubewarden-controller-sbom.spdx.sig
+          script: |
+            console.log(context)
+            console.log(github)
+            console.log(await github.rest.repos.listReleases({
+               owner: context.repo.owner,
+               repo: context.repo.repo,
+            }));
+            const {TAG_NAME} = process.env
+            console.log( await github.rest.repos.updateRelease({
+               owner: context.repo.owner,
+               repo: context.repo.repo,
+               release_id: `${TAG_NAME}`,
+               draft: false
+            }));
+
+
+          #      - name: Create release
+          #        id: create_release
+          #        uses: softprops/action-gh-release@v1
+          #        env:
+          #          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          #        with:
+          #          tag_name: ${{ env.TAG_NAME }}
+          #          name: ${{ env.TAG_NAME }}
+          #          draft: false
+          #          prerelease: ${{ contains(github.ref, '-alpha') || contains(github.ref, '-beta') || contains(github.ref, '-rc') }}
+          #          files: |
+          #            kubewarden-controller-sbom.spdx
+          #            kubewarden-controller-sbom.spdx.cert
+          #            kubewarden-controller-sbom.spdx.sig
