@@ -72,7 +72,7 @@ jobs:
                repo: context.repo.repo,
             });
             const {TAG_NAME} = process.env
-            for (const release of releases) {
+            for (const release of releases.data) {
               if (release.tag_name == `${TAG_NAME}`) {
                       core.exportVariable('RELEASE_ID', release.id)
                       return
