@@ -62,9 +62,10 @@ jobs:
         env:
           COSIGN_EXPERIMENTAL: 1
 
-      - name: Publish release
+      - name: Get release ID
         uses: actions/github-script@v6
         with:
+          result-encoding: string
           script: |
             let releases = await github.rest.repos.listReleases({
                owner: context.repo.owner,
@@ -73,15 +74,25 @@ jobs:
             const {TAG_NAME} = process.env
             for (const release of releases) {
               if (release.tag_name == `${TAG_NAME}`) {
-                let updateRelease = await github.rest.repos.updateRelease({
-                   owner: context.repo.owner,
-                   repo: context.repo.repo,
-                   release_id: release.id ,
-                   draft: false
-                });
-                console.log(updateRelease);
+                      core.exportVariable('RELEASE_ID', release.id)
+                      return
               }
             }
+            core.setFailed(`${TAG_NAME} release draft not found`)
+
+      - name: Publish release
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const {RELEASE_ID} = process.env
+            core.info(`Releasing ID: ${RELEASE_ID}`)
+            github.rest.repos.updateRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: `${RELEASE_ID}`,
+              draft: false
+            });
+
 
 
 
