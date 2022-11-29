@@ -66,19 +66,23 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            console.log(context)
-            console.log(github)
-            console.log(await github.rest.repos.listReleases({
+            let releases = await github.rest.repos.listReleases({
                owner: context.repo.owner,
                repo: context.repo.repo,
-            }));
+            });
             const {TAG_NAME} = process.env
-            console.log( await github.rest.repos.updateRelease({
-               owner: context.repo.owner,
-               repo: context.repo.repo,
-               release_id: `${TAG_NAME}`,
-               draft: false
-            }));
+            for (const release of releases) {
+              if (release.tag_name == `${TAG_NAME}`) {
+                let updateRelease = await github.rest.repos.updateRelease({
+                   owner: context.repo.owner,
+                   repo: context.repo.repo,
+                   release_id: release.id ,
+                   draft: false
+                });
+                console.log(updateRelease);
+              }
+            }
+
 
 
           #      - name: Create release
