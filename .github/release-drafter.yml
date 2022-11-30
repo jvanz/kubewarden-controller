@@ -1,0 +1,61 @@
+categories:
+  - title: 'Breaking changes'
+    labels:
+      - 'major'
+  - title: '🚀 Features'
+    labels:
+      - 'kind/enhancement'
+  - title: '🐛 Bug Fixes'
+    labels:
+      - 'kind/bug'
+  - title: '🧰 Maintenance'
+    labels:
+      - 'kind/chore'
+      - 'area/dependencies'
+
+exclude-labels:
+  - duplicate
+  - invalid
+  - later
+  - wontfix
+  - question
+  - skip-changelog
+
+change-template: '- $TITLE (#$NUMBER)'
+change-title-escapes: '\<*_&' # You can add # and @ to disable mentions, and add ` to disable code blocks.
+name-template: 'Draft'
+template: |
+  $CHANGES
+
+autolabeler:
+    # Tag any PR with "!" in the subject as major update. In other words, breaking change
+  - label: 'major'
+    title: '/.*!:.*/'
+  - label: 'area/dependencies'
+    title: 'chore(deps)'
+  - label: 'kind/enhancement'
+    title: 'feat'
+  - label: 'kind/bug'
+    title: 'fix'
+  - label: 'kind/chore'
+    title: 'chore'
+
+version-resolver:
+  major:
+    labels:
+      - 'major'
+      - 'breaking'
+  minor:
+    labels:
+      - 'minor'
+      - 'feature'
+      - 'kind/enhancement'
+      - 'area/dependencies'
+  patch:
+    labels:
+      - 'patch'
+      - 'fix'
+      - 'bugfix'
+      - 'kind/bug'
+      - 'kind/chore'
+  default: patch
