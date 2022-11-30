@@ -1,4 +1,3 @@
-[![FOSSA license scan](https://app.fossa.com/api/projects/custom%2B25850%2Fgithub.com%2Fkubewarden%2Fkubewarden-controller.svg?type=shield)](https://app.fossa.com/projects/custom%252B25850%252Fgithub.com%252Fkubewarden%252Fkubewarden-controller?ref=badge_shield)
 
 Kubewarden is a Kubernetes Dynamic Admission Controller that uses policies written
 in WebAssembly.
