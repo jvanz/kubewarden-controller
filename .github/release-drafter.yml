@@ -1,0 +1,50 @@
+categories:
+  - title: '🚀 Features'
+    labels:
+      - 'kind/enhancement'
+  - title: '🐛 Bug Fixes'
+    labels:
+      - 'kind/bug'
+  - title: '🧰 Maintenance'
+    labels:
+      - 'kind/chore'
+      - 'area/dependencies'
+
+exclude-labels:
+  - duplicate
+  - invalid
+  - later
+  - wontfix
+  - question
+  - skip-changelog
+
+change-template: '- $TITLE (#$NUMBER)'
+change-title-escapes: '\<*_&' # You can add # and @ to disable mentions, and add ` to disable code blocks.
+tag-template: 'v$RESOLVED_VERSION'
+name-template: 'v$RESOLVED_VERSION'
+template: |
+  $CHANGES
+
+autolabeler:
+  - label: 'area/dependencies'
+    title: 'chore(deps)'
+
+version-resolver:
+  major:
+    labels:
+      - 'major'
+      - 'breaking'
+  minor:
+    labels:
+      - 'minor'
+      - 'feature'
+      - 'kind/enhancement'
+      - 'area/dependencies'
+  patch:
+    labels:
+      - 'patch'
+      - 'fix'
+      - 'bugfix'
+      - 'kind/bug'
+      - 'kind/chore'
+  default: patch
