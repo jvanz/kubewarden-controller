@@ -164,3 +164,11 @@ jobs:
         shell: bash
         run: echo "Update type is ${{ steps.get-update-type.outputs.UPDATE_TYPE }}"
 
+      - name: Trigger Helm chart release
+        uses: peter-evans/repository-dispatch@v2
+        with:
+          token: ${{ secrets.HELM_CHART_REPO_ACCESS_TOKEN }}
+          repository: "${{github.repository_owner}}/helm-charts"
+          event-type: chart-release
+          client-payload: '{"update_type": "${{ steps.get-update-type.outputs.UPDATE_TYPE }}"}'
+
