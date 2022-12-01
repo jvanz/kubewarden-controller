@@ -65,20 +65,18 @@ jobs:
       - name: Get release ID
         uses: actions/github-script@v6
         with:
-          result-encoding: string
           script: |
             let releases = await github.rest.repos.listReleases({
                owner: context.repo.owner,
                repo: context.repo.repo,
             });
-            const {TAG_NAME} = process.env
             for (const release of releases.data) {
-              if (release.tag_name == `${TAG_NAME}`) {
+              if (release.name == `Draft`) {
                       core.exportVariable('RELEASE_ID', release.id)
                       return
               }
             }
-            core.setFailed(`${TAG_NAME} release draft not found`)
+            core.setFailed(`Draft release not found`)
 
       - name: Upload release assets
         uses: actions/github-script@v6
@@ -105,9 +103,12 @@ jobs:
         with:
           script: |
             const {RELEASE_ID} = process.env
+            const {TAG_NAME} = process.env
             github.rest.repos.updateRelease({
               owner: context.repo.owner,
               repo: context.repo.repo,
               release_id: `${RELEASE_ID}`,
-              draft: false
+              draft: false,
+              tag_name: `${TAG_NAME}`,
+              name: `${TAG_NAME}`
             });
