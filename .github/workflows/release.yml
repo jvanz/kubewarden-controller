@@ -62,13 +62,15 @@ jobs:
         env:
           COSIGN_EXPERIMENTAL: 1
 
-      - name: Get release ID
+      - name: Get draft release ID
         uses: actions/github-script@v6
         with:
           script: |
-            let releases = await github.rest.repos.listReleases({
+            const {TAG_NAME} = process.env
+            let release = await github.rest.repos.getReleaseByTag({
                owner: context.repo.owner,
                repo: context.repo.repo,
+               tag: `${TAG_NAME}`
             });
             for (const release of releases.data) {
               if (release.name == `Draft`) {
@@ -112,3 +114,53 @@ jobs:
               tag_name: `${TAG_NAME}`,
               name: `${TAG_NAME}`
             });
+
+      - name: Get latest release tag
+        uses: actions/github-script@v6
+        with:
+          script: |
+            let release = await github.rest.repos.getLatestRelease({
+               owner: context.repo.owner,
+               repo: context.repo.repo,
+            });
+            if (release) {
+              core.exportVariable('LAST_RELEASE_TAG', release.tag_name)
+            } else {
+              core.setFailed(`Latest release not found`)
+            }
+      - name: Get update version type
+        id: get-update-type
+        shell: bash
+        run: |
+          OLD_VERSION=LAST_RELEASE_TAG
+          NEW_VERSION=$TAG_NAME
+
+          SED_REGEX="v\([0-9]\+\)\.\([0-9]\+\)\.\([0-9]\+\)\(.*\)"
+
+          OLD_MAJOR=$(echo $OLD_VERSION | sed  --quiet "s/$SED_REGEX/\1/p")
+          OLD_MINOR=$(echo $OLD_VERSION | sed  --quiet "s/$SED_REGEX/\2/p")
+          OLD_PATCH=$(echo $OLD_VERSION | sed  --quiet "s/$SED_REGEX/\3/p")
+
+          NEW_MAJOR=$(echo $NEW_VERSION | sed  --quiet "s/$SED_REGEX/\1/p")
+          NEW_MINOR=$(echo $NEW_VERSION | sed  --quiet "s/$SED_REGEX/\2/p")
+          NEW_PATCH=$(echo $NEW_VERSION | sed  --quiet "s/$SED_REGEX/\3/p")
+
+          if [ $NEW_MAJOR -gt $OLD_MAJOR ]; then
+              echo "UPDATE_TYPE=major" >> $GITHUB_OUTPUT
+              exit 0
+          fi
+          if [ $NEW_MINOR -gt $OLD_MINOR ]; then
+              echo "UPDATE_TYPE=minor" >> $GITHUB_OUTPUT
+              exit 0
+          fi
+          if [ $NEW_PATCH -gt $OLD_PATCH ]; then
+              echo "UPDATE_TYPE=patch" >> $GITHUB_OUTPUT
+              exit 0
+          fi
+
+          exit 1
+
+      - name: Trigger chart update
+        shell: bash
+        run: echo "Update type is ${{ steps.get-update-type.outputs.UPDATE_TYPE }}"
+
