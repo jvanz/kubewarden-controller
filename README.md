@@ -1,4 +1,3 @@
-[![E2E](https://github.com/kubewarden/kubewarden-controller/actions/workflows/e2e-tests.yml/badge.svg)](https://github.com/kubewarden/kubewarden-controller/actions/workflows/e2e-tests.yml)
 
 Kubewarden is a Kubernetes Dynamic Admission Controller that uses policies written
 in WebAssembly.
