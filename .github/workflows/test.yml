@@ -1,0 +1,46 @@
+name: Testing
+
+on: workflow_dispatch
+
+# Declare default permissions as read only.
+permissions: read-all
+
+jobs:
+  test:
+    permissions:
+      id-token: write
+      contents: write
+    name: Testing
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Get latest release tag
+        id: get_last_release_tag
+        uses: actions/github-script@v6
+        with:
+          script: |
+            let release = await github.rest.repos.getLatestRelease({
+               owner: context.repo.owner,
+               repo: context.repo.repo,
+            });
+
+            console.log(release)
+            console.log(`${release.name}`)
+            console.log(`${release.tag_name}`)
+
+            if (release.status  === 200 ) {
+              core.setOutput('old_release_tag', release.data.tag_name)
+              return
+            }
+            core.setFailed("Cannot find latest release")
+
+      - name: Get releases
+        uses: actions/github-script@v6
+        with:
+          script: |
+
+            let releases = await github.rest.repos.listReleases({
+               owner: context.repo.owner,
+               repo: context.repo.repo,
+            });
+            console.log(releases)
