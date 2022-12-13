@@ -65,6 +65,8 @@ type PolicyServerSpec struct {
 	// key named verification-config in the Configmap.
 	// +optional
 	VerificationConfig string `json:"verificationConfig,omitempty"`
+	// Testing field
+	Testing string `json:"testing,omitempty"`
 }
 
 type ReconciliationTransitionReason string
