@@ -46,7 +46,7 @@ jobs:
         run: |
           make generate-crds
           mv generated-crds kubewarden-crds
-          tar -czf CRDS.tar.gz generated-crds/*
+          tar -czf CRDS.tar.gz kubewarden-crds/*
 
 
       - name: Retrieve tag name
