@@ -45,8 +45,7 @@ jobs:
       - name: Generate CRDs
         run: |
           make generate-crds
-          tar -czf CRDS.tar.gz -C generated-crds .
-
+          tar -czf CRDS.tar.gz -C generated-crds $(ls generated-crds)
 
       - name: Retrieve tag name
         if: ${{ startsWith(github.ref, 'refs/tags/') }}
