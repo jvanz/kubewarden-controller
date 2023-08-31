@@ -57,7 +57,12 @@ const (
 	// OPTEL
 	OptelInjectAnnotation = "sidecar.opentelemetry.io/inject"
 
+	// Controller process exit status codes
 	ControllerReturnCodeSuccess       = 0
 	ControllerReturnCodeError         = 1
 	ControllerReturnCodeCAInitialized = 2
+
+	// Audit scanner
+	AuditScannerCertificateVolumeName             = "policyservers-ca-cert"
+	AuditScannerCertificateVolumeDefaulMode int32 = 420
 )

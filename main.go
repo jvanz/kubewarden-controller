@@ -32,6 +32,7 @@ import (
 	"github.com/kubewarden/kube-webhook-wrapper/webhookwrapper"
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 
 	"k8s.io/apimachinery/pkg/fields"
@@ -520,6 +521,37 @@ func configureControllerValidationWebhooksToUseRootCA(ctx context.Context, clust
 		if err := clusterClient.Patch(ctx, patch, client.MergeFrom(&webhookConfig)); err != nil {
 			return fmt.Errorf("cannot patch ValidatingWebhookConfiguration %s: %s", validatingWebhookName, err.Error())
 		}
+	}
+	return nil
+}
+
+func configureAuditScannerCronJobWithRootCACertificate(ctx context.Context, clusterClient client.Client, auditScannerCronJobName string, namespace string) error {
+	cronjob := batchv1.CronJob{}
+	if err := clusterClient.Get(ctx, client.ObjectKey{Name: auditScannerCronJobName, Namespace: namespace}, &cronjob); err != nil {
+		return fmt.Errorf("cannot get CronJob name: %s, namespace: %s: [%w]", auditScannerCronJobName, namespace, err)
+	}
+	patch := cronjob.DeepCopy()
+	defaultMode := constants.AuditScannerCertificateVolumeDefaulMode
+	volume := corev1.Volume{
+		Name: constants.AuditScannerCertificateVolumeName,
+		VolumeSource: corev1.VolumeSource{
+			Secret: &corev1.SecretVolumeSource{
+				SecretName: constants.KubewardenCARootSecretName,
+				Items: []corev1.KeyToPath{
+					{
+						Key:  constants.CARootCACertPem,
+						Path: "policy-server-root-ca-pem",
+					},
+				},
+				DefaultMode: &defaultMode,
+			},
+		},
+	}
+	volumes := patch.Spec.JobTemplate.Spec.Template.Spec.Volumes
+	volumes = append(volumes, volume)
+	patch.Spec.JobTemplate.Spec.Template.Spec.Volumes = volumes
+	if err := clusterClient.Patch(ctx, patch, client.MergeFrom(&cronjob)); err != nil {
+		return fmt.Errorf("cannot patch CronJob name: %s, namespace: %s: [%w]", auditScannerCronJobName, namespace, err)
 	}
 	return nil
 }

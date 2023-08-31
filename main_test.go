@@ -27,6 +27,7 @@ import (
 	"github.com/kubewarden/kubewarden-controller/internal/pkg/admissionregistration"
 	"github.com/kubewarden/kubewarden-controller/internal/pkg/constants"
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -39,6 +40,7 @@ var validatingWebhook *admissionregistrationv1.ValidatingWebhookConfiguration
 var mutatingWebhook *admissionregistrationv1.MutatingWebhookConfiguration
 var otherValidatingWebhook *admissionregistrationv1.ValidatingWebhookConfiguration
 var otherMutatingWebhook *admissionregistrationv1.MutatingWebhookConfiguration
+var auditScannerCronJob *batchv1.CronJob
 var caSecret *corev1.Secret
 var controllerSecret *corev1.Secret
 var namespace string
@@ -127,6 +129,12 @@ func setUPTest(t *testing.T) {
 		Data: map[string][]byte{
 			constants.PolicyServerTLSCert: []byte("cert"),
 			constants.PolicyServerTLSKey:  []byte("key"),
+		},
+	}
+	auditScannerCronJob = &batchv1.CronJob{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "audit-scanner",
+			Namespace: namespace,
 		},
 	}
 }
@@ -280,6 +288,59 @@ func TestConfigureControllerWebhookToUseRootCA(t *testing.T) {
 					continue
 				}
 				t.Errorf("missing validation or mutation webhook: %s", webhookConfigName)
+			}
+		})
+	}
+}
+
+func TestConfigureAuditScannerCronJobWithRootCACertificate(t *testing.T) {
+	setUPTest(t)
+
+	var tests = []struct {
+		name                    string
+		client                  client.Client
+		auditScannerCronJobName string
+	}{
+		{"CronJob missing certificate",
+			fake.NewClientBuilder().WithObjects(auditScannerCronJob).Build(),
+			"audit-scanner",
+		},
+	}
+
+	for _, test := range tests {
+		ttest := test // ensure tt is correctly scoped when used in function literal
+		t.Run(ttest.name, func(t *testing.T) {
+			if err := configureAuditScannerCronJobWithRootCACertificate(context.Background(), ttest.client, ttest.auditScannerCronJobName, namespace); err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+			auditScannerCronJob := batchv1.CronJob{}
+			if err := ttest.client.Get(context.Background(), client.ObjectKey{Name: ttest.auditScannerCronJobName, Namespace: namespace}, &auditScannerCronJob); err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			volumes := auditScannerCronJob.Spec.JobTemplate.Spec.Template.Spec.Volumes
+			if len(volumes) != 1 {
+				t.Fatalf("invalid volumes count")
+			}
+			volume := volumes[0]
+			if volume.Secret == nil {
+				t.Errorf("invalid secret volume mount")
+			}
+			if volume.Secret.SecretName != constants.KubewardenCARootSecretName {
+				t.Errorf("invalid secret name. Got %s, expected %s", volume.Secret.SecretName, constants.KubewardenCARootSecretName)
+			}
+			if *volume.Secret.DefaultMode != 420 {
+				t.Errorf("invalid default mode. Got %d, expected 420", *volume.Secret.DefaultMode)
+			}
+			if len(volume.Secret.Items) != 1 {
+				t.Errorf("audit scanner secret volume should access only one secret data")
+			}
+			keyToPath := volume.Secret.Items[0]
+			if keyToPath.Key != constants.CARootCACertPem {
+				t.Errorf("invalid secret data key used. Got %s, expected %s", keyToPath.Key, constants.CARootCACertPem)
+			}
+			if keyToPath.Path != "policy-server-root-ca-pem" {
+				t.Errorf("invalid path to the root ca certificate file. Got %s, expected %s", keyToPath.Path, "policy-server-root-ca-pem")
 			}
 		})
 	}
