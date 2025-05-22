@@ -42,7 +42,7 @@ jobs:
           echo TAG_NAME=$(echo $GITHUB_REF | sed -e "s|refs/tags/||") >> $GITHUB_ENV
       - name: Build and push container image
         id: build-image
-        uses: docker/build-push-action@14487ce63c7a62a4a324b0bfb37086795e31c6c1 # v6.16.0
+        uses: docker/build-push-action@1dc73863535b631f98b2378be8619f83b136f4a0 # v6.17.0
         with:
           context: .
           file: ./Dockerfile
@@ -82,7 +82,7 @@ jobs:
       - name: Install cosign
         uses: sigstore/cosign-installer@3454372f43399081ed03b604cb2d021dabca52bb # v3.8.2
       - name: Install the crane command
-        uses: kubewarden/github-actions/crane-installer@17c5644b077a978dfb14bb78985432362b619c1e # v4.4.7
+        uses: kubewarden/github-actions/crane-installer@7195340a122321bf547fda2ffc07eed6f6ae43f6 # v4.5.1
       - name: Login to GitHub Container Registry
         uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
         with:
