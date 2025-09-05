@@ -7,7 +7,7 @@ toolchain go1.24.6
 require (
 	github.com/go-logr/logr v1.4.3
 	github.com/google/cel-go v0.23.2
-	github.com/onsi/ginkgo/v2 v2.25.2
+	github.com/onsi/ginkgo/v2 v2.25.3
 	github.com/onsi/gomega v1.38.2
 	github.com/stretchr/testify v1.10.0
 	github.com/testcontainers/testcontainers-go/modules/k3s v0.38.0
@@ -143,4 +143,4 @@ require (
 	sigs.k8s.io/yaml v1.4.0 // indirect
 )
 
-replace github.com/opencontainers/runc => github.com/opencontainers/runc v1.3.0
+replace github.com/opencontainers/runc => github.com/opencontainers/runc v1.3.1
