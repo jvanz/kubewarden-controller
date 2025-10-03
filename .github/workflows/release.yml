@@ -82,7 +82,7 @@ jobs:
       - name: Install cosign
         uses: sigstore/cosign-installer@d58896d6a1865668819e1d91763c7751a165e159 # v3.9.2
       - name: Install the crane command
-        uses: kubewarden/github-actions/crane-installer@0c3d96f5251f687de1bbe1cd29e86b8a47bd17a6 # v4.5.9
+        uses: kubewarden/github-actions/crane-installer@73e92c9cf9059299619e79372b78eb09a5934fa0 # v4.5.11
       - name: Login to GitHub Container Registry
         uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.5.0
         with:
