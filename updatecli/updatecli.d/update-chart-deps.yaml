@@ -108,14 +108,13 @@ scms:
     spec:
       user: "{{ .github.author }}"
       email: "{{ .github.email }}"
-      directory: "/tmp/helm-charts"
       owner: "{{ requiredEnv .github.owner }}"
-      repository: "helm-charts"
-      token: "{{ requiredEnv .github.token }}"
-      username: "{{ requiredEnv .github.user }}"
+      repository: "kubewarden-controller"
       branch: "{{ .github.branch }}"
+      commitusingapi: true
       commitmessage:
-        type: "deps"
+        type: "chore"
+        scope: deps
         title: "Update Helm charts dependencies"
         hidecredit: true
         footers: "Signed-off-by: Kubewarden bot <cncf-kubewarden-maintainers@lists.cncf.io>"
