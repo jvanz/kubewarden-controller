@@ -33,5 +33,6 @@ jobs:
       - name: Open PR with updatecli
         env:
           UPDATECLI_GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
+          UPDATECLI_GITHUB_OWNER: ${{ github.repository_owner }}
         run: |-
           updatecli compose apply --config updatecli/open-release-pr.yaml
