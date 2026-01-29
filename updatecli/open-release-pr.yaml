@@ -1,6 +1,7 @@
 policies:
   - name: Open a release PR with updated dependencies and Hauler manifest
     config:
+      - ./updatecli.d/scm.yaml
       - ./updatecli.d/update-chart-deps.yaml
       - ./updatecli.d/open-release-pr.yaml
       # - ./updatecli.d/update-hauler-manifest.yaml
