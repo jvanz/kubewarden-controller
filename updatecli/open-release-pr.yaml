@@ -5,4 +5,4 @@ policies:
       - ./updatecli.d/open-release-pr.yaml
     values:
       - ./values/hauler-artifacts-values.yaml
-      - ./updatecli/values.yaml
+      - ./values/values.yaml
