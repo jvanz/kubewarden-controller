@@ -1,11 +1,24 @@
 policies:
-  - name: Open a release PR with updated dependencies and Hauler manifest
+  - name: Updates Helm chart dependencies
     config:
-      - ./updatecli.d/scm.yaml
       - ./updatecli.d/update-chart-deps.yaml
-      - ./updatecli.d/open-release-pr.yaml
-      # - ./updatecli.d/update-hauler-manifest.yaml
     values:
       - ./values/github-scms-values.yaml
       - ./values/values.yaml
+      - ./values/hauler-artifacts-values.yaml
+
+  - name: Bump Helm chart versions
+    config:
+      - ./updatecli.d/open-release-pr.yaml
+    values:
+      - ./values/github-scms-values.yaml
+      - ./values/values.yaml
+
+  - name: Update Hauler manifest
+    config:
+      - ./updatecli.d/update-hauler-manifest.yaml
+    values:
+      - ./values/github-scms-values.yaml
+      - ./values/values.yaml
+      - ./values/release-pr-values.yaml
       - ./values/hauler-artifacts-values.yaml

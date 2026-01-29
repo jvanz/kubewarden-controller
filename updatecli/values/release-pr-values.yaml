@@ -1,0 +1,15 @@
+# pr contains the pull request settings that can be overridden
+pr:
+  description: |
+    Automatic bump to `{{ source "newestGitHubDraftReleaseVersion" }}` release.
+
+    Changes since last released tag: (if no tag, since HEAD^): https://github.com/{{ requiredEnv .github.owner }}/{{ .github.repo }}/compare/{{ source "newestReleaseTagVersion" | default "HEAD^" }}...updatecli_main_release_pr
+
+    > [!IMPORTANT]
+    > REMEMBER USING SQUASH MERGE FOR THIS PR
+  labels:
+    - "kind/chore"
+    - "area/release"
+    - "ci-full" # this triggers all CI jobs
+  reviewers:
+    - "kubewarden/kubewarden-developers"
