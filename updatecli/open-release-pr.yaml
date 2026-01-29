@@ -2,7 +2,5 @@ policies:
   - name: Update Hauler manifest and Open a release PR
     config:
       - ./updatecli.d/open-release-pr.yaml
-      - ./updatecli.d/update-hauler-manifest.yaml
     values:
-      - ./values/hauler-artifacts-values.yaml
       - ./values/values.yaml
