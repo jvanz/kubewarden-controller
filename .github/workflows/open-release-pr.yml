@@ -30,16 +30,7 @@ jobs:
         # Disable plugin verification until helm v4 is supported
         run: helm plugin install https://github.com/losisin/helm-values-schema-json.git --verify=false
 
-      - name: Update Helm charts policies and images
-        env:
-          UPDATECLI_GITHUB_OWNER: ${{ github.repository_owner }}
-          UPDATECLI_GITHUB_APP_CLIENT_ID: ${{ secrets.APP_ID }}
-          UPDATECLI_GITHUB_APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
-          UPDATECLI_GITHUB_APP_INSTALLATION_ID: "${{ secrets.APP_INSTALLATION_ID }}"
-        run: |-
-          updatecli compose apply --file ./updatecli/update-deps-on-release.yaml
-
-      - name: Open PR with updatecli
+      - name: Open release PR with updatecli
         env:
           UPDATECLI_GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
           UPDATECLI_GITHUB_OWNER: ${{ github.repository_owner }}

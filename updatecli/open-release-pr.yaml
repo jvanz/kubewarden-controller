@@ -1,6 +1,15 @@
 policies:
-  - name: Update Hauler manifest and Open a release PR
+  - name: Open a release PR
     config:
       - ./updatecli.d/open-release-pr.yaml
     values:
+      - ./values/github-scms-values.yaml
       - ./values/values.yaml
+  - name: Update Helm chart dependencies and Hauler manifest
+    config:
+      - ./updatecli.d/update-chart-deps.yaml
+      - ./updatecli.d/update-hauler-manifest.yaml
+    values:
+      - ./values/github-scms-values.yaml
+      - ./values/values.yaml
+      - ./values/hauler-artifacts-values.yaml
