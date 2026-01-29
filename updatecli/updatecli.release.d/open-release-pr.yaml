@@ -94,7 +94,7 @@ targets:
     kind: yaml
     sourceid: crdsChartVersion
     scmid: "default"
-    dependson: kubewardenCrdsChartPosition
+    dependson: "kubewardenCrdsChartPosition"
     spec:
       file: "charts/hauler.yaml"
       # Yamlpath to filter the helm chart by name did not work. That's why we
@@ -106,7 +106,7 @@ targets:
     kind: yaml
     sourceid: controllerChartVersion
     scmid: "default"
-    dependson: kubewardenControllerChartPosition
+    dependson: "kubewardenControllerChartPosition"
     spec:
       file: "charts/hauler.yaml"
       # Yamlpath to filter the helm chart by name did not work. That's why we
@@ -116,7 +116,7 @@ targets:
   hauler_manifest_update_kubewarden_defaults_chart:
     name: "Update kubewarden-defaults Helm chart version in Hauler manifest"
     kind: yaml
-    sourceid: defaultsChartVersion
+    sourceid: "defaultsChartVersion"
     scmid: "default"
     dependson: kubewardenDefaultsChartPosition
     spec:
