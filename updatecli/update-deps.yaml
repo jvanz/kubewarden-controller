@@ -4,4 +4,5 @@ policies:
       - ./updatecli.d/update-chart-deps.yaml
       - ./updatecli.d/update-hauler-manifest.yaml
     values:
-      - ./update-deps-values.yaml
+      - ./values/update-deps-values.yaml
+      - ./values/hauler-artifacts-values.yaml
