@@ -7,4 +7,4 @@ policies:
     values:
       - ./values/github-scms-values.yaml
       - ./values/values.yaml
-      # - ./values/hauler-artifacts-values.yaml
+      - ./values/hauler-artifacts-values.yaml
