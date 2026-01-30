@@ -79,14 +79,14 @@ targets:
 
 actions:
   openUpdatePR:
-    title: '{{ default "deps: Update all dependencies" .pr.title }}'
+    title: '{{ default "deps: Update Helm chart dependencies" .pr.title }}'
     kind: "github/pullrequest"
     scmid: "default"
     spec:
       automerge: false
       mergemethod: squash
       description: |
-        Automatic update of all dependencies: Go version, Helm charts, policies, kuberlr-kubectl image, and Hauler manifest
+        Automatic update of Helm chart dependencies: Helm charts, policies, kuberlr-kubectl image, and Hauler manifest
         This PR has been created by automation.
 
         NOTE: REMEMBER TO SQUASH MERGE
