@@ -1,6 +1,8 @@
 name: Update Golang version
 
-pipelineid: golang/version
+# {{ if .pipelineid }}
+pipelineid: "{{ .pipelineid }}"
+# {{ end }}
 
 sources:
   go:
