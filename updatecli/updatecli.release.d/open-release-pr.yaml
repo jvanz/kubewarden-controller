@@ -64,43 +64,33 @@ sources:
     kind: file
     spec:
       file: "./README.md"
-  haulerFile:
-    kind: file
-    spec:
-      file: "./charts/hauler.yaml"
-  kubewardenCrdsChartPosition:
-    kind: yaml
-    spec:
-      engine: go-yaml
-      file: "./charts/hauler.yaml"
-      key: "$.spec.charts[0].name"
 
 conditions:
   kubewardenCrdsChartPosition:
     kind: yaml
-    # scmid: "default"
-    sourceid: kubewardenCrdsChartPosition
+    disablesourceinput: true
     spec:
       engine: go-yaml
-      # key: "$.spec.charts[0].name"
+      key: "$.spec.charts[0].name"
+      file: "./charts/hauler.yaml"
       value: "kubewarden-crds"
-  kubewardenControllerChartPosition:
-    kind: yaml
-    scmid: "default"
-    disablesourceinput: true
-    spec:
-      engine: go-yaml
-      file: "./charts/hauler.yaml"
-      key: "$.spec.charts[1].name"
-      value: "kubewarden-controller"
-  kubewardenDefaultsChartPosition:
-    kind: yaml
-    disablesourceinput: true
-    spec:
-      engine: go-yaml
-      file: "./charts/hauler.yaml"
-      key: "$.spec.charts[2].name"
-      value: "kubewarden-defaults"
+  # kubewardenControllerChartPosition:
+  #   kind: yaml
+  #   scmid: "default"
+  #   disablesourceinput: true
+  #   spec:
+  #     engine: go-yaml
+  #     file: "./charts/hauler.yaml"
+  #     key: "$.spec.charts[1].name"
+  #     value: "kubewarden-controller"
+  # kubewardenDefaultsChartPosition:
+  #   kind: yaml
+  #   disablesourceinput: true
+  #   spec:
+  #     engine: go-yaml
+  #     file: "./charts/hauler.yaml"
+  #     key: "$.spec.charts[2].name"
+  #     value: "kubewarden-defaults"
 
 targets:
   hauler_manifest_update_kubewarden_crds_chart:
@@ -114,28 +104,28 @@ targets:
       # have the condition to ensure the script is not updating the wrong helm
       # chart
       key: "$.spec.charts[0].version"
-  hauler_manifest_update_kubewarden_controller_chart:
-    name: "Update kubewarden-controller Helm chart version in Hauler manifest"
-    kind: yaml
-    sourceid: controllerChartVersion
-    scmid: "default"
-    spec:
-      file: "charts/hauler.yaml"
-      # Yamlpath to filter the helm chart by name did not work. That's why we
-      # have the condition to ensure the script is not updating the wrong helm
-      # chart
-      key: "$.spec.charts[1].version"
-  hauler_manifest_update_kubewarden_defaults_chart:
-    name: "Update kubewarden-defaults Helm chart version in Hauler manifest"
-    kind: yaml
-    sourceid: "defaultsChartVersion"
-    scmid: "default"
-    spec:
-      file: "charts/hauler.yaml"
-      # Yamlpath to filter the helm chart by name did not work. That's why we
-      # have the condition to ensure the script is not updating the wrong helm
-      # chart
-      key: "$.spec.charts[2].version"
+  # hauler_manifest_update_kubewarden_controller_chart:
+  #   name: "Update kubewarden-controller Helm chart version in Hauler manifest"
+  #   kind: yaml
+  #   sourceid: controllerChartVersion
+  #   scmid: "default"
+  #   spec:
+  #     file: "charts/hauler.yaml"
+  #     # Yamlpath to filter the helm chart by name did not work. That's why we
+  #     # have the condition to ensure the script is not updating the wrong helm
+  #     # chart
+  #     key: "$.spec.charts[1].version"
+  # hauler_manifest_update_kubewarden_defaults_chart:
+  #   name: "Update kubewarden-defaults Helm chart version in Hauler manifest"
+  #   kind: yaml
+  #   sourceid: "defaultsChartVersion"
+  #   scmid: "default"
+  #   spec:
+  #     file: "charts/hauler.yaml"
+  #     # Yamlpath to filter the helm chart by name did not work. That's why we
+  #     # have the condition to ensure the script is not updating the wrong helm
+  #     # chart
+  #     key: "$.spec.charts[2].version"
   update_kubewarden_crds_helm_version:
     scmid: default
     name: Update Helm chart kubewarden-crds version
