@@ -26,3 +26,26 @@ Pipeline(s) run:
 One action to follow up:
   * https://github.com/viccuad/kubewarden-controller/pull/1
 ```
+
+## Dependency Updates
+
+There are separate updatecli configurations for different types of dependency updates:
+
+### Golang Version Updates
+Runs hourly via `.github/workflows/updatecli.yaml` using `updatecli-compose.yaml`.
+Updates Go version in `go.mod` and Dockerfiles.
+
+### Chart Dependencies Updates
+Runs weekly (Monday 3:30) via `.github/workflows/update-dependencies.yaml` using `update-deps.yaml`.
+Updates:
+- Policy image tags
+- Policy-reporter chart version
+- Kuberlr-kubectl image
+- Hauler manifest
+
+### Running All Updates Together
+For manual runs that combine both golang and chart updates:
+```console
+$ export UPDATECLI_GITHUB_TOKEN=<your token>
+$ updatecli compose diff --file updatecli/updatecli-compose-all.yaml
+```
