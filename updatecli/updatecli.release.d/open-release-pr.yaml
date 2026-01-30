@@ -78,15 +78,15 @@ sources:
 conditions:
   kubewardenCrdsChartPosition:
     kind: yaml
-    disablesourceinput: true
+    # scmid: "default"
+    sourceid: kubewardenCrdsChartPosition
     spec:
       engine: go-yaml
-      file: "./charts/hauler.yaml"
-      key: "$.spec.charts[0].name"
+      # key: "$.spec.charts[0].name"
       value: "kubewarden-crds"
   kubewardenControllerChartPosition:
     kind: yaml
-    disablesourceinput: true
+    scmid: "default"
     spec:
       engine: go-yaml
       file: "./charts/hauler.yaml"
