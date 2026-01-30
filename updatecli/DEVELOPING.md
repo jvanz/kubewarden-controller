@@ -29,23 +29,22 @@ One action to follow up:
 
 ## Dependency Updates
 
-There are separate updatecli configurations for different types of dependency updates:
+All dependency updates are consolidated into a single weekly workflow.
 
-### Golang Version Updates
-Runs hourly via `.github/workflows/updatecli.yaml` using `updatecli-compose.yaml`.
-Updates Go version in `go.mod` and Dockerfiles.
+### Weekly Dependency Updates
+Runs weekly (Monday 3:30 AM) via `.github/workflows/update-dependencies.yaml` using `update-deps.yaml`.
 
-### Chart Dependencies Updates
-Runs weekly (Monday 3:30) via `.github/workflows/update-dependencies.yaml` using `update-deps.yaml`.
-Updates:
-- Policy image tags
+Updates the following dependencies:
+- Go version in `go.mod` and Dockerfiles
+- Policy image tags in Helm chart values
 - Policy-reporter chart version
-- Kuberlr-kubectl image
-- Hauler manifest
+- Kuberlr-kubectl image version
+- Hauler manifest with all component versions
 
-### Running All Updates Together
-For manual runs that combine both golang and chart updates:
+### Running Updates Manually
+For manual runs of all dependency updates:
 ```console
 $ export UPDATECLI_GITHUB_TOKEN=<your token>
-$ updatecli compose diff --file updatecli/updatecli-compose-all.yaml
+$ export UPDATECLI_GITHUB_OWNER=kubewarden
+$ updatecli compose diff --file updatecli/update-deps.yaml
 ```

@@ -1,4 +1,4 @@
-name: Update Helm charts dependencies
+name: Update dependencies
 
 on:
   workflow_dispatch:
@@ -7,7 +7,7 @@ on:
 
 jobs:
   update-dependencies:
-    name: Update policies and kubectl image
+    name: Update Go version, Helm charts dependencies and Hauler manifest
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -22,7 +22,7 @@ jobs:
           app-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
 
-      - name: Update Helm charts policies and images
+      - name: Update all dependencies
         env:
           UPDATECLI_GITHUB_OWNER: ${{ github.repository_owner }}
           UPDATECLI_GITHUB_APP_CLIENT_ID: ${{ secrets.APP_ID }}
