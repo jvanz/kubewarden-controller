@@ -64,6 +64,10 @@ sources:
     kind: file
     spec:
       file: "./README.md"
+  haulerFile:
+    kind: file
+    spec:
+      file: "./charts/hauler.yaml"
 
 conditions:
   kubewardenCrdsChartPosition:
