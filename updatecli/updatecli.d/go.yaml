@@ -39,22 +39,22 @@ targets:
         keyword: FROM
         matcher: golang
 
-actions:
-  default:
-    title: 'deps(go): update Go to {{ source "go" }} version'
-    kind: github/pullrequest
-    scmid: default
-    spec:
-      automerge: false
-      mergemethod: squash
-      description: |
-        Automatic Golang version {{ source "go" }} update.
-        This PR has been created by the automation used to automatically update the Golang version in the kubewarden-controller project
-        REMEMBER IF YOU WANT TO MERGE IN A SINGLE COMMIT CHANGES AND VERSION BUMP, YOU MUST SQUASH THE COMMIT BEFORE MERGING THIS PR!
-      draft: false
-      labels:
-        - "chore"
-        - "dependencies"
+# actions:
+#   default:
+#     title: 'deps(go): update Go to {{ source "go" }} version'
+#     kind: github/pullrequest
+#     scmid: default
+#     spec:
+#       automerge: false
+#       mergemethod: squash
+#       description: |
+#         Automatic Golang version {{ source "go" }} update.
+#         This PR has been created by the automation used to automatically update the Golang version in the kubewarden-controller project
+#         REMEMBER IF YOU WANT TO MERGE IN A SINGLE COMMIT CHANGES AND VERSION BUMP, YOU MUST SQUASH THE COMMIT BEFORE MERGING THIS PR!
+#       draft: false
+#       labels:
+#         - "chore"
+#         - "dependencies"
 
 scms:
   default:
