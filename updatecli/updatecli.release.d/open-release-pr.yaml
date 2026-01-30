@@ -64,12 +64,23 @@ sources:
     kind: file
     spec:
       file: "./README.md"
+  haulerFile:
+    kind: file
+    spec:
+      file: "./charts/hauler.yaml"
+  kubewardenCrdsChartPosition:
+    kind: yaml
+    spec:
+      engine: go-yaml
+      file: "./charts/hauler.yaml"
+      key: "$.spec.charts[0].name"
 
 conditions:
   kubewardenCrdsChartPosition:
     kind: yaml
     disablesourceinput: true
     spec:
+      engine: go-yaml
       file: "./charts/hauler.yaml"
       key: "$.spec.charts[0].name"
       value: "kubewarden-crds"
@@ -77,6 +88,7 @@ conditions:
     kind: yaml
     disablesourceinput: true
     spec:
+      engine: go-yaml
       file: "./charts/hauler.yaml"
       key: "$.spec.charts[1].name"
       value: "kubewarden-controller"
@@ -84,6 +96,7 @@ conditions:
     kind: yaml
     disablesourceinput: true
     spec:
+      engine: go-yaml
       file: "./charts/hauler.yaml"
       key: "$.spec.charts[2].name"
       value: "kubewarden-defaults"
