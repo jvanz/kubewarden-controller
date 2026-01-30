@@ -111,7 +111,6 @@ scms:
       directory: "/tmp/kubewarden-controller"
       owner: "{{ requiredEnv .github.owner }}"
       repository: "kubewarden-controller"
-      token: "{{ requiredEnv .github.token }}"
       username: "{{ requiredEnv .github.user }}"
       branch: "{{ .github.branch }}"
       commitmessage:
