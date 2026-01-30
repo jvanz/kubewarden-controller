@@ -87,6 +87,7 @@ conditions:
   kubewardenControllerChartPosition:
     kind: yaml
     scmid: "default"
+    disablesourceinput: true
     spec:
       engine: go-yaml
       file: "./charts/hauler.yaml"
