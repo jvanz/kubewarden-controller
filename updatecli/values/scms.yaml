@@ -1,0 +1,6 @@
+github:
+  owner: "UPDATECLI_GITHUB_OWNER"
+  branch: "main"
+  author: "Kubewarden bot"
+  email: "cncf-kubewarden-maintainers@lists.cncf.io"
+  user: "UPDATECLI_GITHUB_OWNER"
