@@ -38,6 +38,6 @@ annotations:
   catalog.cattle.io/type: cluster-tool
 dependencies:
   - name: openreports
-    version: v0.2.0
+    version: 0.2.1
     repository: https://openreports.github.io/reports-api
     condition: installOpenReportsCRDs
