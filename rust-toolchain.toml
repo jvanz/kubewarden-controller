@@ -1,6 +1,6 @@
 
 [toolchain]
-channel = "1.92.0"
+channel = "1.91.0"
 components = [
   "clippy",
   "llvm-tools-preview", # for cargo-llvm-cov
