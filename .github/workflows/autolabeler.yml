@@ -1,9 +1,7 @@
 name: Autolabeler
 
 on:
-  # pull_request_target event is required for autolabeler to support PRs from forks.
-  # Since the autolabeler only reads PR metadata (not code), this is safe.
-  pull_request_target:
+  pull_request:
     types: [opened, reopened, synchronize, edited]
 
 jobs:
