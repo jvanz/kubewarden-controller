@@ -6,6 +6,8 @@ tests:
     set:
       global:
         priorityClassName: "high-priority"
+      policyServer:
+        enabled: true
     asserts:
       - equal:
           path: spec.priorityClassName
