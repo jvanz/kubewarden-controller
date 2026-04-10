@@ -170,10 +170,6 @@ generate-chart: ## Generate Helm chart values schema.
 check-generate: generate
 	@./hack/check-for-auto-generated-changes.sh
 
-.PHONY: charts-check-common-values
-charts-check-common-values:
-	@./scripts/charts-check-common-values.sh
-
 .PHONY: charts-generate-images-file
 charts-generate-images-file:
 	@./scripts/charts-extract-images.sh ./charts
