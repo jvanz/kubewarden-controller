@@ -451,7 +451,7 @@ policyServer:
   requests: {}
 crdVersion: "policies.kubewarden.io/v1"
 recommendedPolicies:
-  enabled: False
+  enabled: false
   # Used to define the registry where the Kubewarden policies are mirrored.
   # This can be useful if the registry used to mirror container images does
   # not support OCI artifacts.
