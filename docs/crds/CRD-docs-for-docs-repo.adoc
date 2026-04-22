@@ -932,6 +932,22 @@ resources. +
 Note: If the referenced PriorityClass is deleted, existing pods +
 remain unchanged, but new pods that reference it cannot be created. + |  | Optional: \{} +
 
+| *`webhookPort`* __integer__ | Port where the policy server listens for incoming webhook requests. +
+When unset, defaults to 8443. This is the port the Kubernetes API server +
+reaches when evaluating admission requests. + |  | Maximum: 65535 +
+Minimum: 1 +
+Optional: \{} +
+
+| *`readinessProbePort`* __integer__ | Port used by the policy server to expose the readiness probe endpoint. +
+When unset, defaults to 8081. + |  | Maximum: 65535 +
+Minimum: 1 +
+Optional: \{} +
+
+| *`metricsPort`* __integer__ | Port used by the policy server to expose the metrics endpoint. +
+When unset, defaults to 8080. Only relevant when metrics are enabled. + |  | Maximum: 65535 +
+Minimum: 1 +
+Optional: \{} +
+
 |===
 
 

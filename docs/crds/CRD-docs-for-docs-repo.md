@@ -538,6 +538,9 @@ _Appears in:_
 | `requests` _[ResourceList](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#resourcelist-v1-core)_ | Requests describes the minimum amount of compute resources required.<br />If Request is omitted for, it defaults to Limits if that is explicitly specified,<br />otherwise to an implementation-defined value |  | Optional: \{\} <br /> |
 | `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#toleration-v1-core) array_ | Tolerations describe the policy server pod's tolerations. It can be<br />used to ensure that the policy server pod is not scheduled onto a<br />node with a taint. |  |  |
 | `priorityClassName` _string_ | PriorityClassName is the name of the PriorityClass to be used for the<br />policy server pods. Useful to schedule policy server pods with higher<br />priority to ensure their availability over other cluster workload<br />resources.<br />Note: If the referenced PriorityClass is deleted, existing pods<br />remain unchanged, but new pods that reference it cannot be created. |  | Optional: \{\} <br /> |
+| `webhookPort` _integer_ | Port where the policy server listens for incoming webhook requests.<br />When unset, defaults to 8443. This is the port the Kubernetes API server<br />reaches when evaluating admission requests. |  | Maximum: 65535 <br />Minimum: 1 <br />Optional: \{\} <br /> |
+| `readinessProbePort` _integer_ | Port used by the policy server to expose the readiness probe endpoint.<br />When unset, defaults to 8081. |  | Maximum: 65535 <br />Minimum: 1 <br />Optional: \{\} <br /> |
+| `metricsPort` _integer_ | Port used by the policy server to expose the metrics endpoint.<br />When unset, defaults to 8080. Only relevant when metrics are enabled. |  | Maximum: 65535 <br />Minimum: 1 <br />Optional: \{\} <br /> |
 
 
 
