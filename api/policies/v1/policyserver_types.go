@@ -150,6 +150,28 @@ type PolicyServerSpec struct {
 	// - Specific capability paths (e.g. "oci/v1/verify", "net/v1/dns_lookup_host")
 	// +optional
 	NamespacedPoliciesCapabilities []string `json:"namespacedPoliciesCapabilities,omitempty"`
+
+	// Port where the policy server listens for incoming webhook requests.
+	// When unset, defaults to 8443. This is the port the Kubernetes API server
+	// reaches when evaluating admission requests.
+	// +optional
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=65535
+	WebhookPort *int32 `json:"webhookPort,omitempty"`
+
+	// Port used by the policy server to expose the readiness probe endpoint.
+	// When unset, defaults to 8081.
+	// +optional
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=65535
+	ReadinessProbePort *int32 `json:"readinessProbePort,omitempty"`
+
+	// Port used by the policy server to expose the metrics endpoint.
+	// When unset, defaults to 8080. Only relevant when metrics are enabled.
+	// +optional
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=65535
+	MetricsPort *int32 `json:"metricsPort,omitempty"`
 }
 
 type ReconciliationTransitionReason string
@@ -220,6 +242,34 @@ func (ps *PolicyServer) NameWithPrefix() string {
 
 func (ps *PolicyServer) AppLabel() string {
 	return "kubewarden-" + ps.NameWithPrefix()
+}
+
+// EffectiveWebhookPort returns the port the policy server listens on for
+// admission webhook requests, using the CRD field when set or the default constant.
+func (ps *PolicyServer) EffectiveWebhookPort() int32 {
+	if ps.Spec.WebhookPort != nil {
+		return *ps.Spec.WebhookPort
+	}
+	return constants.PolicyServerListenPort
+}
+
+// EffectiveReadinessProbePort returns the port used for the readiness probe,
+// using the CRD field when set or the default constant.
+func (ps *PolicyServer) EffectiveReadinessProbePort() int32 {
+	if ps.Spec.ReadinessProbePort != nil {
+		return *ps.Spec.ReadinessProbePort
+	}
+	return constants.PolicyServerReadinessProbePort
+}
+
+// EffectiveMetricsPort returns the port used to expose the metrics endpoint.
+// It returns the CRD-level override when set, otherwise it falls back to defaultPort
+// (which is typically the controller-wide default configured via environment variable).
+func (ps *PolicyServer) EffectiveMetricsPort(defaultPort int32) int32 {
+	if ps.Spec.MetricsPort != nil {
+		return *ps.Spec.MetricsPort
+	}
+	return defaultPort
 }
 
 // CommonLabels returns the common labels to be used with the resources

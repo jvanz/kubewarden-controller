@@ -181,3 +181,20 @@ are configured.
 - {{ .Values.auditScanner.reportCRDsKind }}
 {{- end -}}
 {{- end -}}
+
+{{/*
+Compute the effective affinity for the controller deployment.
+Uses the controller-specific affinity if set, otherwise falls back to
+global.affinity for backward compatibility.
+
+NOTE: When hostNetwork is enabled, users are responsible for setting
+appropriate podAntiAffinity rules to prevent host-port conflicts between
+controller replicas on the same node.
+*/}}
+{{- define "kubewarden-controller.effectiveAffinity" -}}
+{{- if .Values.affinity -}}
+  {{- toYaml .Values.affinity -}}
+{{- else if .Values.global.affinity -}}
+  {{- toYaml .Values.global.affinity -}}
+{{- end -}}
+{{- end -}}

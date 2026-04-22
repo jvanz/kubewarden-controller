@@ -18,6 +18,7 @@ package controller
 
 import (
 	"context"
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -66,8 +67,24 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	var ctx context.Context
 	ctx, cancel := context.WithCancel(context.TODO())
 
+	// Copy Kubewarden CRD files to a temp directory so envtest can load
+	// them. This is necessary to ensure that the latest CRDs version are available
+	// in the tests.
+	crdSourceDir := filepath.Join("..", "..", "charts", "kubewarden-crds", "templates")
+	crdTempDir, err := os.MkdirTemp("", "kubewarden-crds-*")
+	Expect(err).NotTo(HaveOccurred())
+	DeferCleanup(func() { os.RemoveAll(crdTempDir) })
+
+	crdFiles, err := filepath.Glob(filepath.Join(crdSourceDir, "policies.kubewarden.io_*.yaml"))
+	Expect(err).NotTo(HaveOccurred())
+	for _, src := range crdFiles {
+		data, readErr := os.ReadFile(src)
+		Expect(readErr).NotTo(HaveOccurred())
+		Expect(os.WriteFile(filepath.Join(crdTempDir, filepath.Base(src)), data, 0o600)).To(Succeed())
+	}
+
 	testEnv := &envtest.Environment{
-		CRDDirectoryPaths:     []string{filepath.Join("..", "..", "config", "crd", "bases")},
+		CRDDirectoryPaths:     []string{crdTempDir},
 		ErrorIfCRDPathMissing: true,
 	}
 

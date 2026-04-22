@@ -137,15 +137,16 @@ func (r *PolicyServerReconciler) updatePolicyServerDeployment(ctx context.Contex
 		templateAnnotations,
 		podSecurityContext,
 		r.ImagePullSecrets,
+		r.HostNetwork,
 	)
 	r.adaptDeploymentForMetricsAndTracingConfiguration(policyServerDeployment, templateAnnotations)
 	r.adaptDeploymentSettingsForPolicyServer(policyServerDeployment, policyServer)
 
-	if err := r.configureMutualTLS(ctx, policyServerDeployment); err != nil {
-		return fmt.Errorf("failed to configure mutual TLS: %w", err)
+	if mtlsErr := r.configureMutualTLS(ctx, policyServerDeployment); mtlsErr != nil {
+		return fmt.Errorf("failed to configure mutual TLS: %w", mtlsErr)
 	}
-	if err := controllerutil.SetOwnerReference(policyServer, policyServerDeployment, r.Client.Scheme()); err != nil {
-		return errors.Join(errors.New("failed to set policy server deployment owner reference"), err)
+	if ownerErr := controllerutil.SetOwnerReference(policyServer, policyServerDeployment, r.Client.Scheme()); ownerErr != nil {
+		return errors.Join(errors.New("failed to set policy server deployment owner reference"), ownerErr)
 	}
 
 	return nil
@@ -201,7 +202,9 @@ func (r *PolicyServerReconciler) adaptDeploymentForMetricsAndTracingConfiguratio
 	// If the otel sidecar is enabled, we need to inject the sidecar in the
 	// policy server deployment. The exporter will communicate with the sidecar
 	// using the localhost address.
-	if (r.MetricsEnabled || r.TracingEnabled) && r.OtelSidecarEnabled {
+	// NOTE: OTel sidecar injection is skipped when HostNetwork is enabled because
+	// multiple sidecars on the same node would cause port conflicts.
+	if (r.MetricsEnabled || r.TracingEnabled) && r.OtelSidecarEnabled && !r.HostNetwork {
 		templateAnnotations[constants.OptelInjectAnnotation] = "true"
 		envvar := corev1.EnvVar{Name: "OTEL_EXPORTER_OTLP_ENDPOINT", Value: "http://localhost:4317"}
 		if index := envVarsContainVariable(admissionContainer.Env, "OTEL_EXPORTER_OTLP_ENDPOINT"); index >= 0 {
@@ -416,6 +419,7 @@ func buildPolicyServerDeploymentSpec(
 	templateAnnotations map[string]string,
 	podSecurityContext *corev1.PodSecurityContext,
 	imagePullSecrets []corev1.LocalObjectReference,
+	hostNetwork bool,
 ) appsv1.DeploymentSpec {
 	templateLabels := map[string]string{
 		//nolint:staticcheck // this label will remove soon when policy lifecycle is revisited
@@ -425,6 +429,54 @@ func buildPolicyServerDeploymentSpec(
 	}
 	for key, value := range policyServer.CommonLabels() {
 		templateLabels[key] = value
+	}
+
+	podSpec := corev1.PodSpec{
+		SecurityContext:    podSecurityContext,
+		Containers:         []corev1.Container{admissionContainer},
+		ImagePullSecrets:   imagePullSecrets,
+		ServiceAccountName: policyServer.Spec.ServiceAccountName,
+		Tolerations:        policyServer.Spec.Tolerations,
+		Affinity:           &policyServer.Spec.Affinity,
+		PriorityClassName:  policyServer.Spec.PriorityClassName,
+		Volumes: []corev1.Volume{
+			{
+				Name: policyStoreVolume,
+				VolumeSource: corev1.VolumeSource{
+					EmptyDir: &corev1.EmptyDirVolumeSource{},
+				},
+			},
+			{
+				Name: certsVolumeName,
+				VolumeSource: corev1.VolumeSource{
+					Secret: &corev1.SecretVolumeSource{
+						SecretName: policyServer.NameWithPrefix(),
+					},
+				},
+			},
+			{
+				Name: policiesVolumeName,
+				VolumeSource: corev1.VolumeSource{
+					ConfigMap: &corev1.ConfigMapVolumeSource{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: policyServer.NameWithPrefix(),
+						},
+						Items: []corev1.KeyToPath{
+							{
+								Key:  constants.PolicyServerConfigPoliciesEntry,
+								Path: policiesFilename,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	podSpec.HostNetwork = hostNetwork
+	podSpec.DNSPolicy = corev1.DNSClusterFirst
+	if hostNetwork {
+		podSpec.DNSPolicy = corev1.DNSClusterFirstWithHostNet
 	}
 
 	return appsv1.DeploymentSpec{
@@ -443,47 +495,7 @@ func buildPolicyServerDeploymentSpec(
 				Labels:      templateLabels,
 				Annotations: templateAnnotations,
 			},
-			Spec: corev1.PodSpec{
-				SecurityContext:    podSecurityContext,
-				Containers:         []corev1.Container{admissionContainer},
-				ImagePullSecrets:   imagePullSecrets,
-				ServiceAccountName: policyServer.Spec.ServiceAccountName,
-				Tolerations:        policyServer.Spec.Tolerations,
-				Affinity:           &policyServer.Spec.Affinity,
-				PriorityClassName:  policyServer.Spec.PriorityClassName,
-				Volumes: []corev1.Volume{
-					{
-						Name: policyStoreVolume,
-						VolumeSource: corev1.VolumeSource{
-							EmptyDir: &corev1.EmptyDirVolumeSource{},
-						},
-					},
-					{
-						Name: certsVolumeName,
-						VolumeSource: corev1.VolumeSource{
-							Secret: &corev1.SecretVolumeSource{
-								SecretName: policyServer.NameWithPrefix(),
-							},
-						},
-					},
-					{
-						Name: policiesVolumeName,
-						VolumeSource: corev1.VolumeSource{
-							ConfigMap: &corev1.ConfigMapVolumeSource{
-								LocalObjectReference: corev1.LocalObjectReference{
-									Name: policyServer.NameWithPrefix(),
-								},
-								Items: []corev1.KeyToPath{
-									{
-										Key:  constants.PolicyServerConfigPoliciesEntry,
-										Path: policiesFilename,
-									},
-								},
-							},
-						},
-					},
-				},
-			},
+			Spec: podSpec,
 		},
 	}
 }
@@ -640,11 +652,11 @@ func getPolicyServerContainer(policyServer *policiesv1.PolicyServer) corev1.Cont
 			},
 			{
 				Name:  "KUBEWARDEN_PORT",
-				Value: strconv.Itoa(constants.PolicyServerListenPort),
+				Value: strconv.Itoa(int(policyServer.EffectiveWebhookPort())),
 			},
 			{
 				Name:  "KUBEWARDEN_READINESS_PROBE_PORT",
-				Value: strconv.Itoa(constants.PolicyServerReadinessProbePort),
+				Value: strconv.Itoa(int(policyServer.EffectiveReadinessProbePort())),
 			},
 			{
 				Name:  "KUBEWARDEN_POLICIES_DOWNLOAD_DIR",
@@ -663,7 +675,7 @@ func getPolicyServerContainer(policyServer *policiesv1.PolicyServer) corev1.Cont
 			ProbeHandler: corev1.ProbeHandler{
 				HTTPGet: &corev1.HTTPGetAction{
 					Path:   constants.PolicyServerReadinessProbe,
-					Port:   intstr.FromInt(constants.PolicyServerReadinessProbePort),
+					Port:   intstr.FromInt32(policyServer.EffectiveReadinessProbePort()),
 					Scheme: corev1.URISchemeHTTP,
 				},
 			},
