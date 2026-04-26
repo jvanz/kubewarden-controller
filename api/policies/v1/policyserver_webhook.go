@@ -36,7 +36,9 @@ import (
 )
 
 // SetupWebhookWithManager registers the PolicyServer webhook with the controller manager.
-func (ps *PolicyServer) SetupWebhookWithManager(mgr ctrl.Manager, deploymentsNamespace string) error {
+// defaultMetricsPort is the controller-wide default metrics port (possibly overridden via env
+// var) and is used by the validator to detect port conflicts involving the metrics port.
+func (ps *PolicyServer) SetupWebhookWithManager(mgr ctrl.Manager, deploymentsNamespace string, defaultMetricsPort int32) error {
 	logger := mgr.GetLogger().WithName("policyserver-webhook")
 
 	err := ctrl.NewWebhookManagedBy(mgr, ps).
@@ -45,6 +47,7 @@ func (ps *PolicyServer) SetupWebhookWithManager(mgr ctrl.Manager, deploymentsNam
 		}).
 		WithValidator(&policyServerValidator{
 			deploymentsNamespace: deploymentsNamespace,
+			defaultMetricsPort:   defaultMetricsPort,
 			k8sClient:            mgr.GetClient(),
 			logger:               logger,
 		}).
@@ -79,8 +82,12 @@ func (d *policyServerDefaulter) Default(_ context.Context, policyServer *PolicyS
 // polyServerCustomValidator validates PolicyServers when they are created, updated, or deleted.
 type policyServerValidator struct {
 	deploymentsNamespace string
-	k8sClient            client.Client
-	logger               logr.Logger
+	// defaultMetricsPort is the controller-wide default for the PolicyServer metrics port,
+	// which may be overridden via the KUBEWARDEN_POLICY_SERVER_SERVICES_METRICS_PORT env var.
+	// It is used when spec.metricsPort is not explicitly set on a PolicyServer.
+	defaultMetricsPort int32
+	k8sClient          client.Client
+	logger             logr.Logger
 }
 
 // ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type.
@@ -131,6 +138,7 @@ func (v *policyServerValidator) validate(ctx context.Context, policyServer *Poli
 	}
 
 	allErrs = append(allErrs, validateLimitsAndRequests(policyServer.Spec.Limits, policyServer.Spec.Requests)...)
+	allErrs = append(allErrs, v.validatePorts(policyServer)...)
 
 	if len(allErrs) == 0 {
 		return nil
@@ -204,6 +212,42 @@ func validateLimitsAndRequests(limits, requests corev1.ResourceList) field.Error
 		if requestQuantity.Cmp(limitQuantity) > 0 {
 			allErrs = append(allErrs, field.Invalid(fieldPath, requestQuantity.String(), fmt.Sprintf("must be less than or equal to %s limit of %s", requestName, limitQuantity.String())))
 		}
+	}
+
+	return allErrs
+}
+
+// validatePorts checks that the port fields in the PolicyServer spec do not
+// conflict with each other. Effective ports (field value or controller-configured default)
+// are compared so that partial overrides are also caught. The validator's defaultMetricsPort
+// is used so that the env-var-configured controller default is taken into account.
+func (v *policyServerValidator) validatePorts(policyServer *PolicyServer) field.ErrorList {
+	var allErrs field.ErrorList
+
+	webhookPort := policyServer.EffectiveWebhookPort()
+	readinessPort := policyServer.EffectiveReadinessProbePort()
+	metricsPort := policyServer.EffectiveMetricsPort(v.defaultMetricsPort)
+
+	if webhookPort == readinessPort {
+		allErrs = append(allErrs, field.Invalid(
+			field.NewPath("spec").Child("readinessProbePort"),
+			readinessPort,
+			fmt.Sprintf("readinessProbePort must differ from webhookPort (%d)", webhookPort),
+		))
+	}
+	if webhookPort == metricsPort {
+		allErrs = append(allErrs, field.Invalid(
+			field.NewPath("spec").Child("metricsPort"),
+			metricsPort,
+			fmt.Sprintf("metricsPort must differ from webhookPort (%d)", webhookPort),
+		))
+	}
+	if readinessPort == metricsPort {
+		allErrs = append(allErrs, field.Invalid(
+			field.NewPath("spec").Child("metricsPort"),
+			metricsPort,
+			fmt.Sprintf("metricsPort must differ from readinessProbePort (%d)", readinessPort),
+		))
 	}
 
 	return allErrs

@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -62,6 +63,11 @@ import (
 //+kubebuilder:rbac:groups=authentication.k8s.io,resources=tokenreviews,verbs=create
 //+kubebuilder:rbac:groups=authorization.k8s.io,resources=subjectaccessreviews,verbs=create
 
+const (
+	minAllowedPort = 1
+	maxAllowedPort = 65535
+)
+
 //nolint:gochecknoglobals // Following the kubebuilder pattern
 var (
 	scheme   = runtime.NewScheme()
@@ -74,6 +80,7 @@ type ManagerOptions struct {
 	EnableMutualTLS      bool
 	MetricsAddr          string
 	ProbeAddr            string
+	WebhookServerPort    int
 }
 
 type Configuration struct {
@@ -82,6 +89,11 @@ type Configuration struct {
 	FeatureGateAdmissionWebhookMatchConditions         bool
 	WebhookServiceName                                 string
 	ImagePullSecrets                                   []corev1.LocalObjectReference
+	// HostNetwork enables host network mode for PolicyServer deployments.
+	// WARNING: enabling this increases the attack surface. Use only when
+	// the Kubernetes API server cannot reach pod-network webhook endpoints
+	// (e.g. clusters using a non-VPC CNI with NAT).
+	HostNetwork bool
 }
 
 func init() {
@@ -105,8 +117,9 @@ func main() {
 	var openTelemetryCertificateSecret string
 	var imagePullSecretsFlag string
 
-	flag.StringVar(&mgrOpts.MetricsAddr, "metrics-bind-address", ":8088", "The address the metric endpoint binds to.")
+	flag.StringVar(&mgrOpts.MetricsAddr, "metrics-bind-address", ":8088", "The address the controller-runtime metric endpoint binds to.")
 	flag.StringVar(&mgrOpts.ProbeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
+	flag.IntVar(&mgrOpts.WebhookServerPort, "webhook-server-port", 9443, "The port the webhook server listens on.")
 	flag.BoolVar(&mgrOpts.EnableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
@@ -135,6 +148,13 @@ func main() {
 		"image-pull-secrets",
 		"",
 		"Comma-separated list of Secret names to use as imagePullSecrets on every policy-server Deployment. The secrets must exist in the deployments namespace.")
+	flag.BoolVar(&config.HostNetwork,
+		"host-network",
+		false,
+		"Enable host network mode for all PolicyServer deployments. "+
+			"WARNING: enabling this increases the attack surface by exposing webhook endpoints "+
+			"on the host network and giving pods visibility of all node network interfaces. "+
+			"Use only when the Kubernetes API server cannot reach pod-network webhook endpoints.")
 
 	opts := zap.Options{}
 	opts.BindFlags(flag.CommandLine)
@@ -142,6 +162,32 @@ func main() {
 	mgrOpts.EnableMutualTLS = config.ClientCAConfigMapName != ""
 	config.ImagePullSecrets = parseImagePullSecrets(imagePullSecretsFlag)
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+
+	// Read the global default metrics port for PolicyServer services from the
+	// environment variable, falling back to the hardcoded constant.
+	policyServerMetricsPort := int32(constants.PolicyServerMetricsPort)
+	if envPort := os.Getenv(constants.PolicyServerMetricsPortEnvVar); envPort != "" {
+		parsed, err := strconv.ParseInt(envPort, 10, 32)
+		if err != nil {
+			setupLog.Error(err, "cannot parse env var as integer port",
+				"envVar", constants.PolicyServerMetricsPortEnvVar, "value", envPort)
+			retcode = 1
+			return
+		}
+		if parsed < minAllowedPort || parsed > maxAllowedPort {
+			setupLog.Error(
+				errors.New("port must be between 1 and 65535"),
+				"invalid env var port value",
+				"envVar", constants.PolicyServerMetricsPortEnvVar,
+				"value", envPort,
+				"min", minAllowedPort,
+				"max", maxAllowedPort,
+			)
+			retcode = 1
+			return
+		}
+		policyServerMetricsPort = int32(parsed)
+	}
 
 	if enableMetrics {
 		shutdown, err := metrics.New()
@@ -189,13 +235,14 @@ func main() {
 		mgrOpts.DeploymentsNamespace,
 		config,
 		otelConfiguration,
+		policyServerMetricsPort,
 	); err != nil {
 		setupLog.Error(err, "unable to create controllers")
 		retcode = 1
 		return
 	}
 
-	if err = setupWebhooks(mgr, mgrOpts.DeploymentsNamespace); err != nil {
+	if err = setupWebhooks(mgr, mgrOpts.DeploymentsNamespace, policyServerMetricsPort); err != nil {
 		setupLog.Error(err, "unable to create webhooks")
 		retcode = 1
 		return
@@ -275,6 +322,7 @@ func setupManager(mgrOpts ManagerOptions) (ctrl.Manager, error) {
 		},
 		WebhookServer: webhook.NewServer(webhook.Options{
 			ClientCAName: clientCAName,
+			Port:         mgrOpts.WebhookServerPort,
 		}),
 	}
 
@@ -299,6 +347,7 @@ func setupReconcilers(mgr ctrl.Manager,
 	deploymentsNamespace string,
 	config Configuration,
 	otelConfiguration controller.TelemetryConfiguration,
+	policyServerMetricsPort int32,
 ) error {
 	if err := (&controller.PolicyServerReconciler{
 		Client:               mgr.GetClient(),
@@ -309,6 +358,8 @@ func setupReconcilers(mgr ctrl.Manager,
 		TelemetryConfiguration:                             otelConfiguration,
 		ClientCAConfigMapName:                              config.ClientCAConfigMapName,
 		ImagePullSecrets:                                   config.ImagePullSecrets,
+		HostNetwork:                                        config.HostNetwork,
+		PolicyServerMetricsPort:                            policyServerMetricsPort,
 	}).SetupWithManager(mgr); err != nil {
 		return errors.Join(errors.New("unable to create PolicyServer controller"), err)
 	}
@@ -366,8 +417,8 @@ func setupReconcilers(mgr ctrl.Manager,
 	return nil
 }
 
-func setupWebhooks(mgr ctrl.Manager, deploymentsNamespace string) error {
-	if err := (&policiesv1.PolicyServer{}).SetupWebhookWithManager(mgr, deploymentsNamespace); err != nil {
+func setupWebhooks(mgr ctrl.Manager, deploymentsNamespace string, defaultMetricsPort int32) error {
+	if err := (&policiesv1.PolicyServer{}).SetupWebhookWithManager(mgr, deploymentsNamespace, defaultMetricsPort); err != nil {
 		return errors.Join(errors.New("unable to create webhook for policy servers"), err)
 	}
 	if err := (&policiesv1.ClusterAdmissionPolicy{}).SetupWebhookWithManager(mgr); err != nil {
